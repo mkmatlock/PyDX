@@ -13,7 +13,7 @@ def reduce2d(X, groups, op):
             s[i,j] = op(X[groups==G[i]][:,groups==G[j]])
     return s
 
-def plot_spectrum(ax, spectrum, mz_range = None, top_n=3, label_fmt="{mz:.4f}", min_mz_label_separation=0.5, hide_x_label=False):
+def plot_spectrum(ax, spectrum, mz_range=None, top_n=3, label_fmt="{mz:.4f}", min_mz_label_separation=0.5, hide_x_label=False):
     mz = spectrum['mz'].to_numpy()
     intensity = spectrum['intensity'].to_numpy()
     
@@ -53,22 +53,48 @@ def plot_spectrum(ax, spectrum, mz_range = None, top_n=3, label_fmt="{mz:.4f}", 
         ax.set_xlabel(None)
     ax.set_ylabel("Intensity")
 
-def plot_all_spectra(spectra_list, names=None, columns=1):
-    if names is None:
-        names = [f"Spectrum {i}" for i in range(len(spectra_list))]
-    if type(names) is str:
-        names = [names] * len(spectra_list)
-    max_mz = max(max(spectrum['mz']) for spectrum in spectra_list)*1.1
+"""
+    Plot all spectra in a dataframe returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
     
-    fig, axes = plt.subplots(len(spectra_list)//columns + (len(spectra_list) % columns > 0), columns, figsize=(4*columns, 2*(len(spectra_list)//columns + (len(spectra_list) % columns > 0))), dpi=100, sharex=True)
+    Arguments:
+        spectra_df (pd.DataFrame): A dataframe as returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
+        names (List[str]]): Optional list of names to use as titles for each spectrum. If None, defaults to "Feature {FeatureID} Spectrum {SpectrumID}"
+        precursor_mz (List[float]): Optional m/z value to indicate the precursor ion on the plot
+        neutral_loss (Boolean): If True, plot (precursor_mz - mz) values (requires precursor_mz to be provided)
+        columns: Number of columns to use in the plot grid
+        **kwargs: Additional keyword arguments to pass to plot_spectrum
+        
+    Returns: 
+        Tuple(Figure, Axes[][]): a matplotlib plot of the spectra
+"""
+def plot_all_spectra(spectra_df, names=None, precursor_mz=None, neutral_loss=False, columns=1, **kwargs):  
+    if names is None:
+        names = [f"Feature {j} Spectrum {i} " for i,j in zip(spectra_df.FeatureID, spectra_df.SpectrumID)]
+    if type(names) is str:
+        names = [names] * len(spectra_df)
+    
+    if neutral_loss:
+        min_mz = min(min(precursor_mz - spectrum['mz']) for spectrum in spectra_df.Spectrum)
+        min_mz = 0 if min_mz >= 0 else min_mz*1.1
+        max_mz = max(max(precursor_mz - spectrum['mz']) for spectrum in spectra_df.Spectrum)
+        max_mz = 0 if max_mz <= 0 else max_mz*1.1
+    else:
+        min_mz = 0
+        max_mz = max(max(spectrum['mz']) for spectrum in spectra_df.Spectrum)*1.1
+    
+    fig, axes = plt.subplots(len(spectra_df)//columns + (len(spectra_df) % columns > 0), columns, figsize=(4*columns, 2*(len(spectra_df)//columns + (len(spectra_df) % columns > 0))), dpi=100, sharex=True)
     axes = np.array(axes).reshape(-1)  # Flatten in case of multiple rows
-    for i, (spectrum, name) in enumerate(zip(spectra_list, names)):
-        plot_spectrum(axes[i], spectrum, mz_range=(0, max_mz), hide_x_label=(i<(len(spectra_list)-1)))
+    for i, (spectrum, name) in enumerate(zip(spectra_df, names)):
+        if neutral_loss:
+            neutral_loss = spectrum['mz'] = precursor_mz[i] - spectrum['mz']
+            precursor_loc = neutral_loss.abs().argmin()
+            spectrum = spectrum.copy()
+            spectrum['mz'] = precursor_mz[i] - spectrum['mz']
+            spectrum.drop(index=spectrum.index[precursor_loc], inplace=True)  # Remove precursor peak from plot
+            
+        plot_spectrum(axes[i], spectrum, mz_range=(min_mz, max_mz), hide_x_label=(i<(len(spectra_df)-1)), **kwargs)
         axes[i].set_title(name)
-
-    plt.tight_layout()
-    plt.show()
-
+    return fig, axes
 
 def make_spectrum(mz, intensity, ms_level=2):
     """
