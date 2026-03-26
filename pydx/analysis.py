@@ -1,6 +1,181 @@
-import pandas as pd
 import numpy as np
+import pandas as pd
 import sklearn
+import pyopenms as oms
+from matplotlib import pyplot as plt
+
+def reduce2d(X, groups, op):
+    G = np.unique(groups)
+    N = len(G)
+    s = np.zeros((N, N))
+    for i in range(N):
+        for j in range(N):
+            s[i,j] = op(X[groups==G[i]][:,groups==G[j]])
+    return s
+
+def plot_spectrum(ax, spectrum, mz_range = None, top_n=3, label_fmt="{mz:.4f}", min_mz_label_separation=0.5, hide_x_label=False):
+    mz = spectrum['mz'].to_numpy()
+    intensity = spectrum['intensity'].to_numpy()
+    
+    ax.stem(mz, intensity, markerfmt=" ", basefmt=" ")
+    order = np.argsort(intensity)[::-1]
+    top_idx = order[: min(top_n, len(order))]
+    top_idx = top_idx[np.argsort(mz[top_idx])]
+    
+    labeled_mz = []
+    for i in top_idx:
+        mz_i = mz[i]
+        inten_i = intensity[i]
+
+        # simple declutter: skip if too close in m/z to an already-labeled peak
+        if any(abs(mz_i - m) < min_mz_label_separation for m in labeled_mz):
+            continue
+        labeled_mz.append(mz_i)
+
+        ax.annotate(
+            label_fmt.format(mz=mz_i, intensity=inten_i),
+            xy=(mz_i, inten_i),
+            xytext=(0, 6),
+            textcoords="offset points",
+            ha="center",
+            va="bottom",
+            fontsize=7,
+            rotation=0,
+        )
+
+    if mz_range:
+        ax.set_xlim(*mz_range)
+    ax.set_ylim(0, max(intensity) * 1.33)
+    if not hide_x_label:
+        ax.set_xlabel("m/z")
+    if hide_x_label:
+        ax.set_xticklabels([])
+        ax.set_xlabel(None)
+    ax.set_ylabel("Intensity")
+
+def plot_all_spectra(spectra_list, names=None, columns=1):
+    if names is None:
+        names = [f"Spectrum {i}" for i in range(len(spectra_list))]
+    if type(names) is str:
+        names = [names] * len(spectra_list)
+    max_mz = max(max(spectrum['mz']) for spectrum in spectra_list)*1.1
+    
+    fig, axes = plt.subplots(len(spectra_list)//columns + (len(spectra_list) % columns > 0), columns, figsize=(4*columns, 2*(len(spectra_list)//columns + (len(spectra_list) % columns > 0))), dpi=100, sharex=True)
+    axes = np.array(axes).reshape(-1)  # Flatten in case of multiple rows
+    for i, (spectrum, name) in enumerate(zip(spectra_list, names)):
+        plot_spectrum(axes[i], spectrum, mz_range=(0, max_mz), hide_x_label=(i<(len(spectra_list)-1)))
+        axes[i].set_title(name)
+
+    plt.tight_layout()
+    plt.show()
+
+
+def make_spectrum(mz, intensity, ms_level=2):
+    """
+    Build a pyOpenMS MSSpectrum from arrays/lists of m/z and intensity.
+    """
+    mz = np.asarray(mz, dtype=float)
+    intensity = np.asarray(intensity, dtype=float)
+
+    if mz.shape != intensity.shape:
+        raise ValueError("mz and intensity must have the same shape")
+
+    spec = oms.MSSpectrum()
+    spec.setMSLevel(ms_level)
+    spec.set_peaks((mz, intensity))
+    spec.sortByPosition()  # important before alignment
+    return spec
+
+
+def aligned_cosine_similarity(spec1, spec2, tolerance=0.01, unit="Da"):
+    """
+    Cosine similarity using pyOpenMS SpectrumAlignment.
+
+    Parameters
+    ----------
+    spec1, spec2 : oms.MSSpectrum
+    tolerance : float
+        m/z matching tolerance
+    unit : {"Da", "ppm"}
+        Tolerance unit
+
+    Returns
+    -------
+    score : float
+        Cosine similarity in [0, 1]
+    matches : list[tuple[int, int]]
+        Matched peak index pairs
+    """
+    aligner = oms.SpectrumAlignment()
+    params = aligner.getParameters()
+
+    # Parameter names may vary slightly by version, but this is the usual pattern.
+    params.setValue("tolerance", tolerance)
+    params.setValue("is_relative_tolerance", unit.lower() == "ppm")
+    aligner.setParameters(params)
+
+    alignment = []
+    aligner.getSpectrumAlignment(alignment, spec1, spec2)
+
+    mz1, i1 = spec1.get_peaks()
+    mz2, i2 = spec2.get_peaks()
+
+    matched_1 = np.zeros(len(i1), dtype=float)
+    matched_2 = np.zeros(len(i2), dtype=float)
+
+    for idx1, idx2 in alignment:
+        matched_1[idx1] = i1[idx1]
+        matched_2[idx2] = i2[idx2]
+
+    # Build union vectors: matched peaks plus unmatched peaks as zeros
+    # This gives a cosine on the aligned representation.
+    v1 = []
+    v2 = []
+
+    used1 = set()
+    used2 = set()
+
+    for idx1, idx2 in alignment:
+        v1.append(i1[idx1])
+        v2.append(i2[idx2])
+        used1.add(idx1)
+        used2.add(idx2)
+
+    for idx1 in range(len(i1)):
+        if idx1 not in used1:
+            v1.append(i1[idx1])
+            v2.append(0.0)
+
+    for idx2 in range(len(i2)):
+        if idx2 not in used2:
+            v1.append(0.0)
+            v2.append(i2[idx2])
+
+    v1 = np.asarray(v1, dtype=float)
+    v2 = np.asarray(v2, dtype=float)
+
+    denom = np.linalg.norm(v1) * np.linalg.norm(v2)
+    score = 0.0 if denom == 0 else float(np.dot(v1, v2) / denom)
+
+    return score, alignment
+
+
+def pairwise_similarity_matrix(spectra, tolerance=0.01, unit="Da"):
+    """
+    Compute an NxN similarity matrix for a list of MSSpectrum objects.
+    """
+    n = len(spectra)
+    sim = np.eye(n, dtype=float)
+
+    for i in range(n):
+        for j in range(i + 1, n):
+            score, _ = aligned_cosine_similarity(
+                spectra[i], spectra[j], tolerance=tolerance, unit=unit
+            )
+            sim[i, j] = score
+            sim[j, i] = score
+
+    return sim
 
 def retention_time_interpolator(rt_in, rt_out):
     """Compute the parameters of a linear regression model to convert retention times from rt_in to rt_out.
