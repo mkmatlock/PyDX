@@ -1,5 +1,15 @@
+import pandas as pd
 import numpy as np
 import sklearn
+
+def retention_time_interpolator(rt_in, rt_out):
+    """Compute the parameters of a linear regression model to convert retention times from rt_in to rt_out.
+    
+    Arguments:
+        rt_in: A vector of original retention times
+        rt_out: A vector of corrected retention times"""
+        
+    return lambda x: np.interp(x, rt_in, rt_out)
 
 def probablistic_subset_likelihood(p_1, p_2):
     """Compute the likelihood that the distribution of feature f_1 in a set of samples is a subset of the distribution of feature f_2 in the same set.
@@ -15,11 +25,10 @@ def probablistic_subset_likelihood(p_1, p_2):
         
         z_i is an indicator variable for whether feature f_i is present in a sample
     
-    The metric is then computed as:
-    
-        sum( p(f_1 -> f_2) ) / sum( p(f_1) )
+    We compute the likelihood that, given two vectors of indicator variables z_1 and z_2 with joint distributions p_1 and p_2,
+        p(z_1 /cdot z_2 = z_1) = prod(1 - p_1 * (1-p_2))
     """
-    return np.sum(p_1 * (1-p_2), axis=1) / np.sum(p_1)
+    return np.prod(1 - p_1 * (1-p_2))
 
 def compute_peak_likelihood(peak_area, gap_status, gap_fill_method):
     """Compute peak likelihoods for use in the probabilistic subset likelihood function.
