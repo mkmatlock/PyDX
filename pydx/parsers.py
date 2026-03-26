@@ -7,6 +7,15 @@ import gzip
 import numpy as np
 from xml.etree import ElementTree
 
+
+sample_type_codes = {
+    0: 'Sample',
+    1: 'Unknown',
+    2: 'Blank',
+    3: 'Quality Control',
+    4: 'Identification Only'
+}
+
 gap_fill_status_codes = {
     0:	    "Unknown status",
     1:	    "Original ion used",
@@ -29,10 +38,32 @@ gap_status_codes = {
     3: "Full gap"
 }
 
+activation_type_codes = { # This is currently a guess, need to verify
+    32: "HCD",
+    1: "CID"
+}
+
+match_status_codes = {
+    1: "Unknown",
+    2: "No Match",
+    3: "Partial Match",
+    4: "Full Match",
+    5: "Invalid Mass"
+}
+
+polarity_codes = {
+    1: "Positive",
+    2: "Negative"
+}
+
 def decode_mol_structure(blb):
+    if pd.isnull(blb):
+        return None
     return gzip.decompress(blb).decode('utf-8')
 
 def decode_peak_ratings(blb):
+    if pd.isnull(blb):
+        return None, None
     assert len(blb) % 9 == 0, "Byte length must be a multiple of 9"
     
     ratings_bytes = bytes(b for i, b in enumerate(blb) if i % 9 != 8)
@@ -80,6 +111,8 @@ def decode_peak_model(blb):
     return pd.Series(data, index=["apexRT", "leftRT", "rightRT", "width", "intensityLow", "intensityHigh"])
 
 def decode_peak_areas(blb):
+    if pd.isnull(blb):
+        return None, None
     assert len(blb) % 9 == 0, "Byte length must be a multiple of 9"
     
     area_bytes = bytes(b for i, b in enumerate(blb) if i % 9 != 8)
@@ -89,13 +122,25 @@ def decode_peak_areas(blb):
     return np.array(areas, dtype=np.float64), np.array(flags, dtype=np.uint8)
 
 def decode_gap_fill_status(blb):
+    if pd.isnull(blb):
+        return None
     # drop every 5th byte (indices 4, 9, 14, ...)
     kept = bytes(b for j, b in enumerate(blb) if (j + 1) % 5 != 0)
     if len(kept) % 4:
         raise ValueError("Remaining byte count is not a multiple of 4")
     return np.array([int.from_bytes(kept[k:k+4], "little", signed=True) for k in range(0, len(kept), 4)], dtype=np.uint16)
+    
+def decode_gap_status(blb):
+    if pd.isnull(blb):
+        return None
+    kept = bytes(b for j, b in enumerate(blb) if (j + 1) % 5 != 0)
+    if len(kept) % 4:
+        raise ValueError("Remaining byte count is not a multiple of 4")
+    return np.array([int.from_bytes(kept[k:k+4], "little", signed=True) for k in range(0, len(kept), 4)], dtype=np.uint8)
 
 def decode_spectrum(blb):
+    if pd.isnull(blb):
+        return None
     zf = zipfile.ZipFile(io.BytesIO(blb))
     with zf.open(zf.namelist()[0]) as xml_file:
         xml_data = xml_file.read().decode('utf-8')
@@ -103,14 +148,18 @@ def decode_spectrum(blb):
     
     return pd.DataFrame(((float(pk.attrib['X']), float(pk.attrib['Y']), float(pk.attrib['Z']), float(pk.attrib['R']), float(pk.attrib['SN'])) for pk in etree.find('PeakCentroids').findall('Peak')),
                         columns=["mz", "intensity", "Z", "resolution", "signalNoiseRatio"])
-    
-def decode_gap_status(blb):
-    kept = bytes(b for j, b in enumerate(blb) if (j + 1) % 5 != 0)
-    if len(kept) % 4:
-        raise ValueError("Remaining byte count is not a multiple of 4")
-    return np.array([int.from_bytes(kept[k:k+4], "little", signed=True) for k in range(0, len(kept), 4)], dtype=np.uint8)
+
+def decode_xml_spectrum(blb):
+    if pd.isnull(blb):
+        return None
+    zf = zipfile.ZipFile(io.BytesIO(blb))
+    with zf.open(zf.namelist()[0]) as xml_file:
+        xml_data = xml_file.read().decode('utf-8')
+    return xml_data
 
 def decode_retention_times(blb):
+    if pd.isnull(blb):
+        return None
     assert (len(blb)-4) % 8 == 0, "Struct must be 4 byte integer followed by 8 byte doubles"
     blen = int.from_bytes(blb[:4], "little")
     return np.array(struct.unpack('<' + 'd' * blen, blb[4:]), dtype=np.float64)
