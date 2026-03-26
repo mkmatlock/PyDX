@@ -96,24 +96,31 @@ def plot_all_spectra(spectra_df, names=None, precursor_mz=None, neutral_loss=Fal
         axes[i].set_title(name)
     return fig, axes
 
-def make_spectrum(mz, intensity, ms_level=2):
+def make_oms_spectrum(spectrum, feature, ms_level=2):
     """
-    Build a pyOpenMS MSSpectrum from arrays/lists of m/z and intensity.
+    Build a pyOpenMS MSSpectrum from an IDX spectrum
+    
+    Arguments:
+        spectrum: A dataframe with columns "mz" and "intensity" representing the spectrum peaks, from the 'Spectrum' column of the dataframe returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
+        feature: A row from the features dataframe returned by PyDX.features corresponding to the spectrum's FeatureID
     """
-    mz = np.asarray(mz, dtype=float)
-    intensity = np.asarray(intensity, dtype=float)
+    mz = np.asarray(spectrum.mz, dtype=float)
+    intensity = np.asarray(spectrum.intensity, dtype=float)
 
     if mz.shape != intensity.shape:
         raise ValueError("mz and intensity must have the same shape")
 
     spec = oms.MSSpectrum()
+    spec.setRT(feature.RetentionTime)
     spec.setMSLevel(ms_level)
+    if ms_level > 1:
+        spec.setPrecursorMZ(feature.MassOverCharge)
     spec.set_peaks((mz, intensity))
     spec.sortByPosition()  # important before alignment
     return spec
 
 
-def aligned_cosine_similarity(spec1, spec2, tolerance=0.01, unit="Da"):
+def oms_aligned_cosine_similarity(spec1, spec2, tolerance=0.01, unit="Da"):
     """
     Cosine similarity using pyOpenMS SpectrumAlignment.
 
@@ -186,7 +193,7 @@ def aligned_cosine_similarity(spec1, spec2, tolerance=0.01, unit="Da"):
     return score, alignment
 
 
-def pairwise_similarity_matrix(spectra, tolerance=0.01, unit="Da"):
+def oms_pairwise_similarity_matrix(spectra, tolerance=0.01, unit="Da"):
     """
     Compute an NxN similarity matrix for a list of MSSpectrum objects.
     """
@@ -195,7 +202,7 @@ def pairwise_similarity_matrix(spectra, tolerance=0.01, unit="Da"):
 
     for i in range(n):
         for j in range(i + 1, n):
-            score, _ = aligned_cosine_similarity(
+            score, _ = oms_aligned_cosine_similarity(
                 spectra[i], spectra[j], tolerance=tolerance, unit=unit
             )
             sim[i, j] = score
