@@ -4,6 +4,7 @@ from .parsers import decode_gap_fill_status, decode_gap_status, decode_mol_struc
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy import create_engine, inspect
 from typing import List, Tuple, Union
+from collections.abc import Iterable
 
 class PyDX(object):
     
@@ -50,6 +51,8 @@ class PyDX(object):
         return tab
     
     def get_features_by_id(self, feature_ids):
+        if not isinstance(feature_ids, Iterable):
+            feature_ids = [feature_ids]
         df = None
         for batch in self.iterate_features(feature_ids):
             if df is None:
