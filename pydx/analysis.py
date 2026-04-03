@@ -128,7 +128,7 @@ def plot_all_spectra(spectra_df, names=None, precursor_mz=None, neutral_loss=Fal
     
     fig, axes = plt.subplots(len(spectra_df)//columns + (len(spectra_df) % columns > 0), columns, figsize=(4*columns, 2*(len(spectra_df)//columns + (len(spectra_df) % columns > 0))), dpi=100, sharex=True)
     axes = np.array(axes).reshape(-1)  # Flatten in case of multiple rows
-    for i, (spectrum, name) in enumerate(zip(spectra_df, names)):
+    for i, (spectrum, name) in enumerate(zip(spectra_df.Spectrum, names)):
         if neutral_loss:
             neutral_loss = spectrum['mz'] = precursor_mz[i] - spectrum['mz']
             precursor_loc = neutral_loss.abs().argmin()
@@ -140,7 +140,7 @@ def plot_all_spectra(spectra_df, names=None, precursor_mz=None, neutral_loss=Fal
         axes[i].set_title(name)
     return fig, axes
 
-def make_oms_spectrum(spectrum, feature, ms_level=2):
+def make_oms_spectrum(spectrum, feature, ms_level):
     """
     Build a pyOpenMS MSSpectrum from an IDX spectrum
     
@@ -167,100 +167,25 @@ def make_oms_spectrum(spectrum, feature, ms_level=2):
     spec.sortByPosition()  # important before alignment
     return spec
 
-
-def oms_aligned_cosine_similarity(spec1, spec2, tolerance=0.01, unit="Da"):
+def make_matchms_spectrum(spectrum, feature, ms_level):
     """
-    Cosine similarity using pyOpenMS SpectrumAlignment.
-
-    Parameters
-    ----------
-    spec1, spec2 : oms.MSSpectrum
-    tolerance : float
-        m/z matching tolerance
-    unit : {"Da", "ppm"}
-        Tolerance unit
-
-    Returns
-    -------
-    score : float
-        Cosine similarity in [0, 1]
-    matches : list[tuple[int, int]]
-        Matched peak index pairs
+    Build a matchms Spectrum from an IDX spectrum
+    
+    Arguments:
+        spectrum: A dataframe with columns "mz" and "intensity" representing the spectrum peaks, from the 'Spectrum' column of the dataframe returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
+        feature: A row from the features dataframe returned by PyDX.features corresponding to the spectrum's FeatureID
+        ms_level: The MS level of the spectrum
     """
-    import pyopenms as oms
-        
-    aligner = oms.SpectrumAlignment()
-    params = aligner.getParameters()
+    from matchms import Spectrum
+    
+    mz = np.asarray(spectrum.mz, dtype=float)
+    intensity = np.asarray(spectrum.intensity, dtype=float)
 
-    # Parameter names may vary slightly by version, but this is the usual pattern.
-    params.setValue("tolerance", tolerance)
-    params.setValue("is_relative_tolerance", unit.lower() == "ppm")
-    aligner.setParameters(params)
+    if mz.shape != intensity.shape:
+        raise ValueError("mz and intensity must have the same shape")
 
-    alignment = []
-    aligner.getSpectrumAlignment(alignment, spec1, spec2)
-
-    mz1, i1 = spec1.get_peaks()
-    mz2, i2 = spec2.get_peaks()
-
-    matched_1 = np.zeros(len(i1), dtype=float)
-    matched_2 = np.zeros(len(i2), dtype=float)
-
-    for idx1, idx2 in alignment:
-        matched_1[idx1] = i1[idx1]
-        matched_2[idx2] = i2[idx2]
-
-    # Build union vectors: matched peaks plus unmatched peaks as zeros
-    # This gives a cosine on the aligned representation.
-    v1 = []
-    v2 = []
-
-    used1 = set()
-    used2 = set()
-
-    for idx1, idx2 in alignment:
-        v1.append(i1[idx1])
-        v2.append(i2[idx2])
-        used1.add(idx1)
-        used2.add(idx2)
-
-    for idx1 in range(len(i1)):
-        if idx1 not in used1:
-            v1.append(i1[idx1])
-            v2.append(0.0)
-
-    for idx2 in range(len(i2)):
-        if idx2 not in used2:
-            v1.append(0.0)
-            v2.append(i2[idx2])
-
-    v1 = np.asarray(v1, dtype=float)
-    v2 = np.asarray(v2, dtype=float)
-
-    denom = np.linalg.norm(v1) * np.linalg.norm(v2)
-    score = 0.0 if denom == 0 else float(np.dot(v1, v2) / denom)
-
-    return score, alignment
-
-
-def oms_pairwise_similarity_matrix(spectra, tolerance=0.01, unit="Da"):
-    """
-    Compute an NxN similarity matrix for a list of MSSpectrum objects.
-    """
-    import pyopenms as oms
-        
-    n = len(spectra)
-    sim = np.eye(n, dtype=float)
-
-    for i in range(n):
-        for j in range(i + 1, n):
-            score, _ = oms_aligned_cosine_similarity(
-                spectra[i], spectra[j], tolerance=tolerance, unit=unit
-            )
-            sim[i, j] = score
-            sim[j, i] = score
-
-    return sim
+    metadata = {'precursor_mz': feature.MassOverCharge} if ms_level > 1 else {}
+    return Spectrum(mz=mz, intensities=intensity, metadata=metadata)
 
 def retention_time_interpolator(rt_in, rt_out):
     """Compute the parameters of a linear regression model to convert retention times from rt_in to rt_out.
