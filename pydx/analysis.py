@@ -1,8 +1,52 @@
 import numpy as np
 import pandas as pd
 import sklearn
-import pyopenms as oms
 from matplotlib import pyplot as plt
+
+def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap_status=False):
+    """
+        Plot the peak areas for a set of features across. Optionally filter by sample type and plot gap status and gap fill method as well.
+        Arguments:
+            features: A subset of the dataframe returned by PyDX.features
+            combine: If True, combine features with the same name by summing their peak areas
+            include_gap_status: If True, plot gap status and gap fill method as colored bars behind the peak area bars. Note that this option is incompatible with combine=True.
+    """
+    if sample_filter is None:
+        sample_filter = np.ones(len(features.iloc[0].Area))
+    
+    gap_color_map = {1: 'blue', 2:'yellow', 3:'red'}
+    gap_status_color_map = {0: 'gray', 1: 'blue', 2:'red', 4:'red', 8:'red', 16:'red', 32:'red', 64:'blue', 128:'blue', 256:'yellow', 512:'yellow', 1024:'yellow'}
+    
+    all_peak_areas = features.apply(lambda row: row.Area[sample_filter].tolist(), axis=1, result_type='expand')
+    if combine:
+        all_peak_areas.insert(0, 'Name', features.Name)
+        all_peak_areas = all_peak_areas.groupby('Name').sum()
+    total_features = len(all_peak_areas)
+    
+    if include_gap_status and not combine: # options are mutually incompatible
+        gap_status = features.apply(lambda row: row.GapStatus[sample_filter].tolist(), axis=1, result_type='expand')
+        gap_fill_method = features.apply(lambda row: row.GapFillStatus[sample_filter].tolist(), axis=1, result_type='expand')
+    
+    _, ax = plt.subplots(1, total_features, figsize=(3 * total_features, 2))
+    if total_features == 1:
+        ax = [ax]
+    x = np.arange(len(all_peak_areas.columns))
+    max_area = all_peak_areas.max(axis=None)
+    
+    for i, ix in enumerate(all_peak_areas.index):
+        ax[i].bar(x, np.log10(all_peak_areas.loc[ix]), width=1, color='blue')
+        if include_gap_status and not combine:
+             ax[i].bar(x, [1] * len(gap_status.loc[ix]), width=1, color=[gap_color_map[status] for status in gap_status.loc[ix].tolist()])
+             ax[i].bar(x, [0.5] * len(gap_fill_method.loc[ix]), width=1, color=[gap_status_color_map[status] for status in gap_fill_method.loc[ix].tolist()])
+        ax[i].set_xticks([])
+        if combine:
+            ax[i].set_title(f"{ix}", fontsize=10)
+        else:
+            ax[i].set_title(f"{features.loc[ix].Name} ({ix})", fontsize=10)
+        ax[i].set_ylim(0, np.log10(max_area) * 1.2)
+    
+    plt.tight_layout()
+    plt.show()
 
 def reduce2d(X, groups, op):
     G = np.unique(groups)
@@ -104,6 +148,8 @@ def make_oms_spectrum(spectrum, feature, ms_level=2):
         spectrum: A dataframe with columns "mz" and "intensity" representing the spectrum peaks, from the 'Spectrum' column of the dataframe returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
         feature: A row from the features dataframe returned by PyDX.features corresponding to the spectrum's FeatureID
     """
+    import pyopenms as oms
+    
     mz = np.asarray(spectrum.mz, dtype=float)
     intensity = np.asarray(spectrum.intensity, dtype=float)
 
@@ -114,7 +160,9 @@ def make_oms_spectrum(spectrum, feature, ms_level=2):
     spec.setRT(feature.RetentionTime)
     spec.setMSLevel(ms_level)
     if ms_level > 1:
-        spec.setPrecursorMZ(feature.MassOverCharge)
+        p = oms.Precursor()
+        p.setMZ(feature.MassOverCharge)
+        spec.setPrecursors([p])
     spec.set_peaks((mz, intensity))
     spec.sortByPosition()  # important before alignment
     return spec
@@ -139,6 +187,8 @@ def oms_aligned_cosine_similarity(spec1, spec2, tolerance=0.01, unit="Da"):
     matches : list[tuple[int, int]]
         Matched peak index pairs
     """
+    import pyopenms as oms
+        
     aligner = oms.SpectrumAlignment()
     params = aligner.getParameters()
 
@@ -197,6 +247,8 @@ def oms_pairwise_similarity_matrix(spectra, tolerance=0.01, unit="Da"):
     """
     Compute an NxN similarity matrix for a list of MSSpectrum objects.
     """
+    import pyopenms as oms
+        
     n = len(spectra)
     sim = np.eye(n, dtype=float)
 
