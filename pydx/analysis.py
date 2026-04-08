@@ -251,3 +251,12 @@ def compute_peak_likelihood(peak_area, gap_status, gap_fill_method):
     probabilities[nonzero] = lr_output
     probabilities[~nonzero] = 0
     return probabilities
+
+def compute_all_peak_likelihoods(peak_area, gap_fill_method, gap_status):
+    D = np.zeros(peak_area.shape)
+    for i, index in enumerate(peak_area.index):
+        A = peak_area.loc[index].values
+        GFM = gap_fill_method.loc[index].values
+        GS = gap_status.loc[index].values
+        D[i, :] = compute_peak_likelihood(A, GS, GFM)
+    return pd.DataFrame(D, index=peak_area.index, columns=peak_area.columns)
