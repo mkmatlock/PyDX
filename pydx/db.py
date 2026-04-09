@@ -215,7 +215,7 @@ class PyDX(object):
         if len(spectrum_ids) == 1:
             where_clause = f"MS.ID = {spectrum_ids[0]}"
         elif len(spectrum_ids) > 1:
-            where_clause = f"MS.ID IN {tuple(spectrum_ids)}"
+            where_clause = f"MS.ID IN ({', '.join([str(sid) for sid in spectrum_ids])})"
         else:
             raise ValueError("spectrum_ids must contain at least one ID")
         
@@ -258,7 +258,7 @@ class PyDX(object):
         if len(feature_ids) == 1:
                 where_clause = f"BHI.ConsolidatedUnknownCompoundItemsID = {feature_ids[0]}"
         elif len(feature_ids) > 1:
-            where_clause = f"BHI.ConsolidatedUnknownCompoundItemsID IN {tuple(feature_ids)}"
+            where_clause = f"BHI.ConsolidatedUnknownCompoundItemsID IN ({', '.join([str(fid) for fid in feature_ids])})"
         else:
             raise ValueError("feature_ids must contain at least one ID")
         Q = f"""SELECT BHI.ConsolidatedUnknownCompoundItemsID AS FeatureID, MS.WorkflowID AS WorkflowID, MS.ID AS SpectrumID, MS.FileID AS FileID, MS.MSOrder AS MSn, MS.Polarity AS Polarity, MS.RetentionTime AS RetentionTime, MS.ResolutionAtMass200 AS Resolution, MS.ActivationType AS ActivationType, MS.ScanType AS ScanType, MS.Ionization AS Ionization, MS.MassAnalyzer AS MassAnalyzer, MS.Spectrum AS Spectrum
