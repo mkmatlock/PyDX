@@ -3,6 +3,47 @@ import pandas as pd
 import sklearn
 from matplotlib import pyplot as plt
 
+def match_peaks(mz_1, mz_2, tolerance):
+    """Match peaks between two spectra given their m/z values and a tolerance in ppm.
+    
+    Arguments:
+        mz_1: A vector of m/z values for the first spectrum
+        mz_2: A vector of m/z values for the second spectrum
+        tolerance: The maximum allowed difference in m/z values for two peaks to be considered a match, in ppm
+    Returns:
+        A numpy array of indicies in mz_2 corresponding to the best match for each peak in mz_1, or -1 if no match is found within the tolerance.
+    """
+    matches = np.full(mz_1.shape, -1, dtype=int)
+    for i, mz in enumerate(mz_1):
+        ppm_diff = np.abs(mz_2 - mz) / mz * 1e6
+        best_match_idx = np.argmin(ppm_diff)
+        if ppm_diff[best_match_idx] <= tolerance:
+            matches[i] = best_match_idx
+    return matches
+
+def generate_isotope_spectrum(formula, adduct, charge):
+    """Generate an isotope spectrum for a given empirical formula using pyOpenMS.
+    
+    Arguments:
+        formula: A string representing the empirical formula, e.g. "C10H15N2O"
+        
+    Returns:
+        A dataframe with columns mz, intensity representing the isotope spectrum.
+    """
+    from pyopenms import EmpiricalFormula, CoarseIsotopePatternGenerator
+    formula = EmpiricalFormula(formula)+EmpiricalFormula(adduct)
+    print(formula.getMonoWeight())
+    
+    isotopes = formula.getIsotopeDistribution(CoarseIsotopePatternGenerator(6))
+
+    L = isotopes.size()
+    mz = np.zeros(L)
+    intensity = np.zeros(L)
+    for i, iso in enumerate(isotopes):
+        mz[i] = iso.getMZ() / charge
+        intensity[i] = iso.getIntensity()
+    return pd.DataFrame({'mz': mz, 'intensity': intensity})
+
 def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap_status=False):
     """
         Plot the peak areas for a set of features across. Optionally filter by sample type and plot gap status and gap fill method as well.

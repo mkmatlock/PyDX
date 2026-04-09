@@ -1,5 +1,16 @@
 TEST_DATABASE_FILE = "../DrugContaminants/raw/241203_LM_PWID_untargeted_alignment.cdResult"
 
+def test_get_isotope_pattern():
+    import numpy as np
+    from pydx.analysis import generate_isotope_spectrum, match_peaks
+    
+    spectrum = generate_isotope_spectrum("C22H28N2O", "H", 1)
+    
+    empirical_spectrum = np.array([337.22717, 338.23056, 339.12015, 339.23389, 340.23715, 340.26910, 341.09842, 341.15878, 342.26358])
+    mapping = match_peaks(spectrum.mz, empirical_spectrum, tolerance=5)
+
+    np.testing.assert_equal(mapping, [0, 1, 3, 4, -1, -1])
+
 def test_convert_to_pyopenms():
     import numpy as np
     from pydx import PyDX
