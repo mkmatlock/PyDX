@@ -1,0 +1,152 @@
+<?xml version="1.0"?>
+<MassSpectrum xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Header>
+    <SpectrumID>446272</SpectrumID>
+    <InstrumentName>Orbitrap ID-X</InstrumentName>
+    <DataType>Centroid</DataType>
+    <LowPosition>50</LowPosition>
+    <HighPosition>348</HighPosition>
+    <BasePeakPosition>188.14323425293</BasePeakPosition>
+    <BasePeakIntensity>37591188</BasePeakIntensity>
+    <TotalIntensity>101515577.34375</TotalIntensity>
+    <SpectrumIdentifiers>
+      <SpectrumIdentifier FileID="7030" ScanNumber="6593" MasterScanNumber="6585" RetentionTime="11.784571600435" />
+    </SpectrumIdentifiers>
+  </Header>
+  <ScanEvent>
+    <ActivationTypes>HCD</ActivationTypes>
+    <ActivationEnergies>
+      <double>35</double>
+    </ActivationEnergies>
+    <SteppedCollisionEnergies>
+      <double>20</double>
+      <double>35</double>
+      <double>50</double>
+    </SteppedCollisionEnergies>
+    <CompensationVoltage xsi:nil="true" />
+    <IonizationSource>Electrospray</IonizationSource>
+    <IsMultiplexed>false</IsMultiplexed>
+    <IsDeconvolved>false</IsDeconvolved>
+    <IsolationMass>337.2271728515625</IsolationMass>
+    <IsolationWidth>1.5</IsolationWidth>
+    <IsolationOffset>0</IsolationOffset>
+    <MassAnalyzer>FourierTransform</MassAnalyzer>
+    <MSOrder>MS2</MSOrder>
+    <Polarity>Positive</Polarity>
+    <ResolutionAtMass200>30000</ResolutionAtMass200>
+    <ScanRate>Normal</ScanRate>
+    <ScanType>Full</ScanType>
+    <MassRange>
+      <double>50</double>
+      <double>348</double>
+    </MassRange>
+  </ScanEvent>
+  <PrecursorInfo SpectrumNumber="6585" Charge="1" SinglyChargedMass="337.22717" PrecursorMassOrigin="MonoisotopicMassReevaluated" Intensity="9.679454E+07" Resolution="54805" SignalToNoise="4411.3" InstrumentDeterminedCharge="1" InstrumentDeterminedMonoisotopicMass="337.22720" IsolationWidth="1.50" IsolationMass="337.22717" IsolationOffset="0.00" PercentIsolationInterference="0.1" IonInjectTime="2.742">
+    <SpectrumHeader>
+      <SpectrumID>6585</SpectrumID>
+      <InstrumentName>Orbitrap ID-X</InstrumentName>
+      <DataType>Centroid</DataType>
+      <LowPosition>334.7272</LowPosition>
+      <HighPosition>342.7272</HighPosition>
+      <BasePeakPosition>337.227172851563</BasePeakPosition>
+      <BasePeakIntensity>96794536</BasePeakIntensity>
+      <TotalIntensity>171906042.855469</TotalIntensity>
+      <SpectrumIdentifiers>
+        <SpectrumIdentifier FileID="-1" ScanNumber="6585" MasterScanNumber="-1" RetentionTime="11.9075024437333" />
+      </SpectrumIdentifiers>
+    </SpectrumHeader>
+    <ScanEvent>
+      <ActivationTypes>Unknown</ActivationTypes>
+      <ActivationEnergies />
+      <CompensationVoltage xsi:nil="true" />
+      <IonizationSource>Electrospray</IonizationSource>
+      <IsMultiplexed>false</IsMultiplexed>
+      <IsDeconvolved>false</IsDeconvolved>
+      <IsolationMass>0</IsolationMass>
+      <IsolationWidth>0</IsolationWidth>
+      <IsolationOffset>0</IsolationOffset>
+      <MassAnalyzer>FourierTransform</MassAnalyzer>
+      <MSOrder>MS1</MSOrder>
+      <Polarity>Positive</Polarity>
+      <ResolutionAtMass200>60000</ResolutionAtMass200>
+      <ScanRate>Normal</ScanRate>
+      <ScanType>Full</ScanType>
+      <MassRange>
+        <double>100</double>
+        <double>1000</double>
+      </MassRange>
+    </ScanEvent>
+    <MonoisotopicPeakCentroids>
+      <Peak X="337.22717" Y="9.679454E+07" Z="1" R="54805" SN="4411.3" />
+    </MonoisotopicPeakCentroids>
+    <MeasuredMonoisotopicPeakCentroids>
+      <Peak X="337.22717" Y="9.679454E+07" Z="1" R="54805" SN="4411.3" />
+    </MeasuredMonoisotopicPeakCentroids>
+    <IsotopeClusterPeakCentroids>
+      <Peak X="335.12555" Y="68582.82" Z="0" R="33200" SN="3.1" />
+      <Peak X="335.16470" Y="66240.28" Z="1" R="35400" SN="3.0" />
+      <Peak X="337.10458" Y="80651.1" Z="0" R="33300" SN="3.7" />
+      <Peak X="337.22717" Y="9.679454E+07" Z="1" R="54805" SN="4411.3" />
+      <Peak X="338.23056" Y="2.318172E+07" Z="1" R="54500" SN="1054.4" />
+      <Peak X="339.12015" Y="59410.35" Z="0" R="33300" SN="2.7" />
+      <Peak X="339.23389" Y="2618148" Z="1" R="53000" SN="118.9" />
+      <Peak X="340.23715" Y="199502.5" Z="0" R="46600" SN="9.0" />
+      <Peak X="340.26910" Y="46672.94" Z="0" R="36100" SN="2.1" />
+      <Peak X="341.09842" Y="46396.45" Z="0" R="34500" SN="2.1" />
+      <Peak X="341.15878" Y="68998.21" Z="0" R="39600" SN="3.1" />
+      <Peak X="342.26358" Y="4.867518E+07" Z="1" R="54405" SN="2196.7" />
+    </IsotopeClusterPeakCentroids>
+    <IsotopeClusterProfilePoints />
+  </PrecursorInfo>
+  <PeakCentroids>
+    <Peak X="55.05426" Y="246104.2" Z="0" R="59700" SN="10.2" />
+    <Peak X="56.04947" Y="94289.02" Z="0" R="45800" SN="3.9" />
+    <Peak X="57.03350" Y="298147.1" Z="0" R="61700" SN="12.5" />
+    <Peak X="67.05415" Y="142495" Z="0" R="56500" SN="6.0" />
+    <Peak X="69.06981" Y="219317.8" Z="0" R="53900" SN="9.2" />
+    <Peak X="71.84129" Y="54140.66" Z="0" R="37400" SN="2.3" />
+    <Peak X="74.82400" Y="45683.23" Z="0" R="39900" SN="1.9" />
+    <Peak X="77.03851" Y="117934.1" Z="0" R="39300" SN="4.7" />
+    <Peak X="77.04525" Y="50076.32" Z="0" R="32500" SN="2.0" />
+    <Peak X="79.05418" Y="568552.5" Z="0" R="54000" SN="22.8" />
+    <Peak X="83.65417" Y="45137.71" Z="0" R="34500" SN="1.8" />
+    <Peak X="84.07806" Y="79402.59" Z="0" R="61900" SN="3.1" />
+    <Peak X="84.08072" Y="992267.2" Z="0" R="53500" SN="39.4" />
+    <Peak X="91.05419" Y="186756" Z="0" R="46400" SN="7.5" />
+    <Peak X="94.06508" Y="291831.6" Z="0" R="47500" SN="11.7" />
+    <Peak X="95.04903" Y="114712.1" Z="0" R="35500" SN="4.6" />
+    <Peak X="96.08089" Y="75064.11" Z="0" R="35100" SN="3.0" />
+    <Peak X="103.05420" Y="428976.9" Z="0" R="46700" SN="16.8" />
+    <Peak X="105.06978" Y="2.663667E+07" Z="0" R="49500" SN="1039.3" />
+    <Peak X="117.05688" Y="80851.15" Z="0" R="32900" SN="3.2" />
+    <Peak X="117.06982" Y="254582.5" Z="0" R="42200" SN="9.9" />
+    <Peak X="119.08550" Y="71501.61" Z="0" R="29400" SN="2.8" />
+    <Peak X="120.08065" Y="293614.9" Z="0" R="41800" SN="11.5" />
+    <Peak X="120.14776" Y="46744.53" Z="0" R="27200" SN="1.8" />
+    <Peak X="132.08072" Y="2383215" Z="0" R="43300" SN="92.8" />
+    <Peak X="134.09636" Y="1651624" Z="0" R="42800" SN="64.2" />
+    <Peak X="146.09636" Y="1529942" Z="0" R="40900" SN="59.0" />
+    <Peak X="148.87521" Y="49386.62" Z="0" R="26900" SN="1.9" />
+    <Peak X="150.09134" Y="268876.3" Z="0" R="38000" SN="10.4" />
+    <Peak X="160.11203" Y="284784.8" Z="0" R="36000" SN="11.0" />
+    <Peak X="167.76184" Y="50057.34" Z="0" R="25700" SN="1.9" />
+    <Peak X="177.04951" Y="49424.47" Z="0" R="27300" SN="1.9" />
+    <Peak X="186.12761" Y="330835.6" Z="0" R="33900" SN="12.6" />
+    <Peak X="188.14323" Y="3.759119E+07" Z="0" R="36700" SN="1437.6" />
+    <Peak X="188.60989" Y="51016.93" Z="0" R="23400" SN="2.0" />
+    <Peak X="189.14677" Y="79723.29" Z="0" R="26000" SN="3.1" />
+    <Peak X="190.12239" Y="110726.6" Z="0" R="24100" SN="4.2" />
+    <Peak X="205.36833" Y="47127.62" Z="0" R="24400" SN="1.8" />
+    <Peak X="216.13823" Y="1547446" Z="0" R="33800" SN="60.6" />
+    <Peak X="231.31955" Y="52151.68" Z="0" R="23400" SN="2.1" />
+    <Peak X="253.31499" Y="53260.22" Z="0" R="20800" SN="2.0" />
+    <Peak X="261.33466" Y="51380.03" Z="0" R="22400" SN="2.0" />
+    <Peak X="281.20135" Y="275434.4" Z="0" R="27200" SN="10.6" />
+    <Peak X="291.40408" Y="48051.1" Z="0" R="18800" SN="1.9" />
+    <Peak X="311.44995" Y="52064.69" Z="0" R="19800" SN="2.0" />
+    <Peak X="337.22717" Y="2.340292E+07" Z="0" R="27600" SN="906.0" />
+    <Peak X="338.23068" Y="64970.05" Z="0" R="18800" SN="2.5" />
+    <Peak X="338.69226" Y="55121.67" Z="0" R="18900" SN="2.1" />
+  </PeakCentroids>
+  <ProfilePoints />
+</MassSpectrum>

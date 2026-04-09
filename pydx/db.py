@@ -1,6 +1,6 @@
 import sqlite3
 import pandas as pd
-from .parsers import decode_gap_fill_status, decode_gap_status, decode_mol_structure, decode_peak_areas, decode_peak_ratings, decode_retention_times, decode_spectrum, decode_xml_spectrum
+from .parsers import decode_gap_fill_status, decode_gap_status, decode_mol_structure, decode_peak_areas, decode_peak_ratings, decode_retention_times, decode_spectrum, decode_spectrum_to_xml
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy import create_engine, inspect
 from typing import List, Tuple, Union
@@ -196,11 +196,17 @@ class PyDX(object):
             result = pd.read_sql_query("SELECT ID FROM MassSpectrumItems", con=self.engine)
         return result['ID'].tolist()
         
+    def _decode_spectra(self, spectra_df):
+        ndf = spectra_df.apply(lambda row: decode_spectrum(row.Spectrum), axis=1, result_type='expand')
+        spectra_df['Metadata'] = ndf[0]
+        spectra_df['Precursor'] = ndf[1]
+        spectra_df['Spectrum'] = ndf[2]
+        
     @property
     def spectra(self):
         if not hasattr(self, '_spectra_data'):
             self._spectra_data = pd.read_sql_table('MassSpectrumItems', con=self.engine)
-            self._spectra_data['Spectrum'] = self._spectra_data['Spectrum'].apply(decode_spectrum)
+            self._decode_spectra(self._spectra_data)
         return self._spectra_data
     
     def get_spectra_by_id(self, spectrum_ids, asxml=False):
@@ -225,9 +231,9 @@ class PyDX(object):
         
         tab = pd.read_sql_query(Q, con=self.engine)
         if asxml:
-            tab['Spectrum'] = tab['Spectrum'].apply(decode_xml_spectrum)
+            tab['Spectrum'] = tab['Spectrum'].apply(decode_spectrum_to_xml)
         else:
-            tab['Spectrum'] = tab['Spectrum'].apply(decode_spectrum)
+            self._decode_spectra(tab)
         return tab
     
     @property
@@ -266,9 +272,9 @@ class PyDX(object):
                 WHERE {where_clause}"""
         tab = pd.read_sql_query(Q, con=self.engine)
         if asxml:
-            tab['Spectrum'] = tab['Spectrum'].apply(decode_xml_spectrum)
+            tab['Spectrum'] = tab['Spectrum'].apply(decode_spectrum_to_xml)
         else:
-            tab['Spectrum'] = tab['Spectrum'].apply(decode_spectrum)
+            self._decode_spectra(tab)
         return tab
     
     

@@ -138,18 +138,93 @@ def decode_gap_status(blb):
         raise ValueError("Remaining byte count is not a multiple of 4")
     return np.array([int.from_bytes(kept[k:k+4], "little", signed=True) for k in range(0, len(kept), 4)], dtype=np.uint8)
 
+def parse_xml_tag_text(tag):
+    if tag is None:
+        return None
+    return tag.text
+
+def parse_xml_double_list(tag):
+    if tag is None:
+        return []
+    return [float(x.text) for x in tag.findall('double')]
+
+def parse_xml_int_tag(tag):
+    if tag is None:
+        return None
+    return int(tag.text)
+
+def parse_xml_msorder(tag):
+    if tag is not None and tag.text.startswith("MS"):
+        return int(tag.text[2:])
+    return None
+
+def parse_xml_float_tag(tag):
+    if tag is None:
+        return None
+    return float(tag.text)
+
+def parse_scan_metadata(etree, header_tag_name="Header"):
+    header_tag = etree.find(header_tag_name)
+    
+    spectrum_id = parse_xml_int_tag(header_tag.find("SpectrumID"))
+    instrument = parse_xml_tag_text(header_tag.find("InstrumentName"))
+    low_mz = parse_xml_float_tag(header_tag.find("LowPosition"))
+    high_mz = parse_xml_float_tag(header_tag.find("HighPosition"))
+    
+    scan_event_tag = etree.find("ScanEvent")
+    activation_types = parse_xml_tag_text(scan_event_tag.find("ActivationTypes"))
+    activation_energies = parse_xml_double_list(scan_event_tag.find("ActivationEnergies"))
+    collision_energies = parse_xml_double_list(scan_event_tag.find("SteppedCollisionEnergies"))
+    
+    ionization_source = parse_xml_tag_text(scan_event_tag.find("IonizationSource"))
+    msorder = parse_xml_msorder(scan_event_tag.find("MSOrder"))
+    polarity = parse_xml_tag_text(scan_event_tag.find("Polarity"))
+    resolution = parse_xml_float_tag(scan_event_tag.find("ResolutionAtMass200"))
+    
+    return {"spectrum_id": spectrum_id, "instrument": instrument, "low_mz": low_mz, "high_mz": high_mz,
+            "activation_types": activation_types, "activation_energies": activation_energies,
+            "collision_energies": collision_energies, "ionization_source": ionization_source,
+            "msorder": msorder, "polarity": polarity, "resolution": resolution}
+    
+def peaks_to_df(peak_tags):
+    return pd.DataFrame(((float(pk.attrib['X']), float(pk.attrib['Y']), float(pk.attrib['Z']), float(pk.attrib['R']), float(pk.attrib['SN'])) for pk in peak_tags),
+                        columns=["mz", "intensity", "Z", "resolution", "signalNoiseRatio"])
+    
+def decode_precursor_scans(etree):
+    precursor_tag = etree.find("PrecursorInfo")
+    if precursor_tag is None:
+        return None
+    
+    metadata = parse_scan_metadata(precursor_tag, "SpectrumHeader")
+    if metadata['spectrum_id'] == -1:
+        return None
+    
+    monoisotopic_peak_centroids = peaks_to_df(precursor_tag.find('MonoisotopicPeakCentroids').findall('Peak'))
+    isotope_cluster_peak_centroids = peaks_to_df(precursor_tag.find('IsotopeClusterPeakCentroids').findall('Peak'))
+    metadata.update({"monoisotopic_peak_centroids": monoisotopic_peak_centroids, "isotope_cluster_peak_centroids": isotope_cluster_peak_centroids})
+    
+    
+    return pd.Series(metadata, index=["spectrum_id", "instrument", "low_mz", "high_mz", "activation_types", "activation_energies", 
+                                                  "collision_energies", "ionization_source", "msorder", "polarity", "resolution", 
+                                                  "monoisotopic_peak_centroids", "isotope_cluster_peak_centroids"])
+    
+def decode_spectrum_from_xml(xml_data):
+    etree = ElementTree.fromstring(xml_data)
+    
+    metadata = parse_scan_metadata(etree)
+    precursor_scans = decode_precursor_scans(etree)
+    peak_data = peaks_to_df(etree.find('PeakCentroids').findall('Peak'))
+    return metadata, precursor_scans, peak_data
+
 def decode_spectrum(blb):
     if pd.isnull(blb):
         return None
     zf = zipfile.ZipFile(io.BytesIO(blb))
     with zf.open(zf.namelist()[0]) as xml_file:
         xml_data = xml_file.read().decode('utf-8')
-    etree = ElementTree.fromstring(xml_data)
-    
-    return pd.DataFrame(((float(pk.attrib['X']), float(pk.attrib['Y']), float(pk.attrib['Z']), float(pk.attrib['R']), float(pk.attrib['SN'])) for pk in etree.find('PeakCentroids').findall('Peak')),
-                        columns=["mz", "intensity", "Z", "resolution", "signalNoiseRatio"])
+    return decode_spectrum_from_xml(xml_data)
 
-def decode_xml_spectrum(blb):
+def decode_spectrum_to_xml(blb):
     if pd.isnull(blb):
         return None
     zf = zipfile.ZipFile(io.BytesIO(blb))
