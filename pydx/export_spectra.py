@@ -126,8 +126,6 @@ def structure_to_smi(feature_row, delta_mass):
     return Chem.MolToSmiles(rdmol)
     
 def generate_batches(idxa, msn_level, apply_rt_correction, delta_mass, num_peaks):
-    print("Loading feature data from IDX...")
-    features = idxa.features
     unicode_dt = h5py.string_dtype(encoding='utf-8')    
 
     file_id_to_study_file_id_map = {}
@@ -138,7 +136,7 @@ def generate_batches(idxa, msn_level, apply_rt_correction, delta_mass, num_peaks
         rt_corrections = {}
         for _, row in idxa.corrected_retention_times.iterrows():
             rt_corrections[row.FileID] = retention_time_interpolator(row.OriginalRT, row.CorrectedRT)
-            
+    
     spectrum_ids = idxa.filter_spectrum_ids(msn_level=msn_level)
     print(f"Found {len(spectrum_ids)} matching spectra...", file=sys.stderr)
     totalN = 0
@@ -146,30 +144,21 @@ def generate_batches(idxa, msn_level, apply_rt_correction, delta_mass, num_peaks
     with click.progressbar(batched(spectrum_ids, 100), length=(len(spectrum_ids) + 99) // 100, label="Exporting spectra") as bar:
         for batch in bar:
             spectra = idxa.get_spectra_by_id(batch)
-            spectra_to_features = features.loc[spectra.FeatureID]
-            
-            ids = spectra.apply(lambda row: f"{row.FileID}_{row.FeatureID}_{row.SpectrumID}", axis=1).to_numpy().astype(unicode_dt)
-            file_ids = spectra.FileID.apply(lambda x: file_id_to_study_file_id_map[x]).to_numpy().astype(unicode_dt)
-            feature_ids = spectra.FeatureID.to_numpy().astype(int)
             spectrum_ids = spectra.SpectrumID.to_numpy().astype(int)
             
             formatted_spectra = reformat_spectrum(spectra.Spectrum.to_list(), num_peaks).astype(np.float32)
             level = spectra.MSn.to_numpy().astype(int)
             fragmentation_method = spectra.ActivationType.apply(lambda x: activation_type_codes.get(x, 'Unknown')).to_numpy().astype(unicode_dt)
-            precursor_mz = spectra_to_features.MassOverCharge.to_numpy().astype(np.float32)
+            precursor_mz = spectra.Precursor.apply(lambda x: (0 if x is None else x['precursor_mz'])).to_numpy().astype(np.float32)
+            
             if apply_rt_correction:
                 RT = spectra.apply(lambda row: rt_corrections[row.FileID](row.RetentionTime), axis=1).to_numpy().astype(np.float32)
             else:
                 RT = spectra.RetentionTime.to_numpy().astype(np.float32)
-            adduct = spectra_to_features.ReferenceIon.to_numpy().astype(unicode_dt)
             polarity = spectra.Polarity.apply(lambda x: polarity_codes[x]).to_numpy().astype(unicode_dt)
             
-            exact_mass = spectra_to_features.MolecularWeight.to_numpy().astype(np.float32)
-            formula = spectra_to_features.ElementalCompositionFormula.apply(reformat_formula).to_numpy().astype(unicode_dt)    
-            smiles = spectra_to_features.apply(lambda row: structure_to_smi(row, delta_mass), axis=1).to_numpy().astype(unicode_dt)
-            
-            batch_result = {'id': ids, 'file_id': file_ids, 'feature_id': feature_ids, 'spectrum_id': spectrum_ids, 'spectrum': formatted_spectra, 'level': level, 'fragmentation_method': fragmentation_method, 'precursor_mz': precursor_mz, 'RT': RT, 'adduct': adduct, 'polarity': polarity, 'exact_mass': exact_mass, 'formula': formula, 'smiles': smiles}
-            totalN += len(ids)
+            batch_result = {'spectrum_id': spectrum_ids, 'spectrum': formatted_spectra, 'level': level, 'fragmentation_method': fragmentation_method, 'precursor_mz': precursor_mz, 'RT': RT, 'polarity': polarity}
+            totalN += len(spectrum_ids)
             yield batch_result
             
     print(f"Finished exporting {totalN} spectra.", file=sys.stderr)

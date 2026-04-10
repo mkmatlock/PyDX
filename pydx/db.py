@@ -209,6 +209,26 @@ class PyDX(object):
             self._decode_spectra(self._spectra_data)
         return self._spectra_data
     
+    def feature_to_spectra(self, feature_ids=None, spectrum_ids=None):
+        where_clauses = []
+        if feature_ids is not None:
+            where_clauses.append(f"BHI.ConsolidatedUnknownCompoundItemsID IN ({', '.join([str(fid) for fid in feature_ids])})")
+        if specturm_ids is not None:
+            where_clauses.append(f"BHIMS.MassSpectrumItemsID IN ({', '.join([str(sid) for sid in spectrum_ids])})")
+        if len(where_clauses) == 0:
+            where_clause = ""
+        else:
+            where_clause = "WHERE " + " AND ".join(where_clauses)
+
+        Q = f"""SELECT BHI.ConsolidatedUnknownCompoundItemsID AS FeatureID, BHIMS.MassSpectrumItemsID AS SpectrumID
+                FROM ConsolidatedUnknownCompoundItemsBestHitIonInstanceItems BHI 
+                    JOIN BestHitIonInstanceItemsMassSpectrumItems BHIMS 
+                        ON BHI.BestHitIonInstanceItemsWorkflowID = BHIMS.BestHitIonInstanceItemsWorkflowID 
+                            AND BHI.BestHitIonInstanceItemsID = BHIMS.BestHitIonInstanceItemsID
+                {where_clause}"""
+        tab = pd.read_sql_query(Q, con=self.engine)
+        return tab
+    
     def get_spectra_by_id(self, spectrum_ids, asxml=False):
         if type(spectrum_ids) == int: 
             spectrum_ids = [spectrum_ids]
@@ -219,15 +239,8 @@ class PyDX(object):
         else:
             raise ValueError("spectrum_ids must contain at least one ID")
         
-        Q = f"""SELECT BHI.ConsolidatedUnknownCompoundItemsID AS FeatureID, MS.WorkflowID AS WorkflowID, MS.ID AS SpectrumID, MS.FileID AS FileID, MS.MSOrder AS MSn, MS.Polarity AS Polarity, MS.RetentionTime AS RetentionTime, MS.ResolutionAtMass200 AS Resolution, MS.ActivationType AS ActivationType, MS.ScanType AS ScanType, MS.Ionization AS Ionization, MS.MassAnalyzer AS MassAnalyzer, MS.Spectrum AS Spectrum
-                    FROM ConsolidatedUnknownCompoundItemsBestHitIonInstanceItems BHI 
-                        JOIN BestHitIonInstanceItemsMassSpectrumItems BHIMS 
-                            ON BHI.BestHitIonInstanceItemsWorkflowID = BHIMS.BestHitIonInstanceItemsWorkflowID 
-                                AND BHI.BestHitIonInstanceItemsID = BHIMS.BestHitIonInstanceItemsID
-                        JOIN MassSpectrumItems MS
-                            ON BHIMS.MassSpectrumItemsWorkflowID = MS.WorkflowID
-                                AND BHIMS.MassSpectrumItemsID = MS.ID
-        WHERE {where_clause}"""
+        Q = f"""SELECT MS.WorkflowID AS WorkflowID, MS.ID AS SpectrumID, MS.FileID AS FileID, MS.MSOrder AS MSn, MS.Polarity AS Polarity, MS.RetentionTime AS RetentionTime, MS.ResolutionAtMass200 AS Resolution, MS.ActivationType AS ActivationType, MS.ScanType AS ScanType, MS.Ionization AS Ionization, MS.MassAnalyzer AS MassAnalyzer, MS.Spectrum AS Spectrum
+                    FROM MassSpectrumItems MS WHERE {where_clause}"""
         
         tab = pd.read_sql_query(Q, con=self.engine)
         if asxml:
