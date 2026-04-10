@@ -198,15 +198,16 @@ def decode_precursor_scans(etree):
     metadata = parse_scan_metadata(precursor_tag, "SpectrumHeader")
     if metadata['spectrum_id'] == -1:
         return None
+    metadata['precursor_mz'] = float(precursor_tag.attrib['IsolationMass'])
     
     monoisotopic_peak_centroids = peaks_to_df(precursor_tag.find('MonoisotopicPeakCentroids').findall('Peak'))
     isotope_cluster_peak_centroids = peaks_to_df(precursor_tag.find('IsotopeClusterPeakCentroids').findall('Peak'))
     metadata.update({"monoisotopic_peak_centroids": monoisotopic_peak_centroids, "isotope_cluster_peak_centroids": isotope_cluster_peak_centroids})
     
     
-    return pd.Series(metadata, index=["spectrum_id", "instrument", "low_mz", "high_mz", "activation_types", "activation_energies", 
-                                                  "collision_energies", "ionization_source", "msorder", "polarity", "resolution", 
-                                                  "monoisotopic_peak_centroids", "isotope_cluster_peak_centroids"])
+    return pd.Series(metadata, index=["spectrum_id", "instrument", "low_mz", "high_mz", "activation_types", 
+                                      "activation_energies", "collision_energies", "ionization_source", "msorder", "precursor_mz",
+                                      "polarity", "resolution", "monoisotopic_peak_centroids", "isotope_cluster_peak_centroids"])
     
 def decode_spectrum_from_xml(xml_data):
     etree = ElementTree.fromstring(xml_data)
