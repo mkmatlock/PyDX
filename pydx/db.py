@@ -213,7 +213,7 @@ class PyDX(object):
         where_clauses = []
         if feature_ids is not None:
             where_clauses.append(f"BHI.ConsolidatedUnknownCompoundItemsID IN ({', '.join([str(fid) for fid in feature_ids])})")
-        if specturm_ids is not None:
+        if spectrum_ids is not None:
             where_clauses.append(f"BHIMS.MassSpectrumItemsID IN ({', '.join([str(sid) for sid in spectrum_ids])})")
         if len(where_clauses) == 0:
             where_clause = ""
