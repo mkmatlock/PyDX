@@ -181,51 +181,68 @@ def plot_all_spectra(spectra_df, names=None, precursor_mz=None, neutral_loss=Fal
         axes[i].set_title(name)
     return fig, axes
 
-def make_oms_spectrum(spectrum, feature, ms_level):
+def convert_native_type(value):
+    """Convert a value from the native type used in the IDX database to a standard Python type for use in pyOpenMS and matchms.
+    
+    Arguments:
+        value: A value from the PyDX dataframe, which may be of a native type such as numpy.float32 or numpy.int64
+        
+    Returns:
+        The input value converted to a standard Python type such as float or int
+    """
+    if isinstance(value, np.generic):
+        return value.item()
+    return value
+
+def make_oms_spectrum(spectrum):
     """
     Build a pyOpenMS MSSpectrum from an IDX spectrum
     
     Arguments:
-        spectrum: A dataframe with columns "mz" and "intensity" representing the spectrum peaks, from the 'Spectrum' column of the dataframe returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
-        feature: A row from the features dataframe returned by PyDX.features corresponding to the spectrum's FeatureID
+        spectrum: A row from the dataframe returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
+        
+    Returns:
+        A pyOpenMS MSSpectrum object with the m/z and intensity values from the input spectrum
     """
     import pyopenms as oms
     
-    mz = np.asarray(spectrum.mz, dtype=float)
-    intensity = np.asarray(spectrum.intensity, dtype=float)
+    mz = np.asarray(spectrum.Spectrum.mz, dtype=float)
+    intensity = np.asarray(spectrum.Spectrum.intensity, dtype=float)
 
     if mz.shape != intensity.shape:
         raise ValueError("mz and intensity must have the same shape")
 
     spec = oms.MSSpectrum()
-    spec.setRT(feature.RetentionTime)
-    spec.setMSLevel(ms_level)
-    if ms_level > 1:
+    spec.setRT(convert_native_type(spectrum.RetentionTime))
+    spec.setMSLevel(convert_native_type(spectrum.MSn))
+    if spectrum.MSn > 1:
         p = oms.Precursor()
-        p.setMZ(feature.MassOverCharge)
+        p.setMZ(convert_native_type(spectrum.Precursor['precursor_mz']))
         spec.setPrecursors([p])
     spec.set_peaks((mz, intensity))
     spec.sortByPosition()  # important before alignment
     return spec
 
-def make_matchms_spectrum(spectrum, feature, ms_level):
+def make_matchms_spectrum(spectrum):
     """
     Build a matchms Spectrum from an IDX spectrum
     
     Arguments:
-        spectrum: A dataframe with columns "mz" and "intensity" representing the spectrum peaks, from the 'Spectrum' column of the dataframe returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
-        feature: A row from the features dataframe returned by PyDX.features corresponding to the spectrum's FeatureID
-        ms_level: The MS level of the spectrum
+        spectrum: A row from the dataframe returned by PyDX.get_spectra_by_id or PyDX.get_compound_spectra
+        
+    Returns:
+        A matchms Spectrum object with the m/z and intensity values from the input spectrum, and a metadata field "precursor_mz" if the spectrum is MS2 or higher.
     """
+    
     from matchms import Spectrum
     
-    mz = np.asarray(spectrum.mz, dtype=float)
-    intensity = np.asarray(spectrum.intensity, dtype=float)
+    mz = np.asarray(spectrum.Spectrum.mz, dtype=float)
+    intensity = np.asarray(spectrum.Spectrum.intensity, dtype=float)
 
     if mz.shape != intensity.shape:
         raise ValueError("mz and intensity must have the same shape")
 
-    metadata = {'precursor_mz': feature.MassOverCharge} if ms_level > 1 else {}
+    metadata = {'precursor_mz': spectrum.Precursor['precursor_mz']} if spectrum.MSn > 1 else {}
     return Spectrum(mz=mz, intensities=intensity, metadata=metadata)
 
 def retention_time_interpolator(rt_in, rt_out):
