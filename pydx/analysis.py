@@ -89,7 +89,7 @@ def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap
     plt.tight_layout()
     plt.show()
 
-def reduce2d(X, groups, op):
+def reduce2d(X, groups, op, progress=False):
     """
     Reduce a 2d array X by applying an operation op to the submatrices defined by groups.
     For example, if X is a matrix of pairwise distances between samples, and groups is a 
@@ -121,10 +121,15 @@ def reduce2d(X, groups, op):
     idx = [np.flatnonzero(inv == k) for k in range(n_groups)]
 
     out = np.empty((n_groups, n_groups), dtype=float)
-
-    for i, ri in enumerate(idx):
-        for j, cj in enumerate(idx):
-            out[i, j] = op(X[np.ix_(ri, cj)])
+    if progress:
+        from tqdm import tqdm
+        iterator = tqdm(((i, j) for i in range(n_groups) for j in range(n_groups)), total=n_groups**2)
+    else:
+        iterator = ((i, j) for i in range(n_groups) for j in range(n_groups))
+    
+    for i, j in iterator:
+        ri, cj = idx[i], idx[j]
+        out[i, j] = op(X[np.ix_(ri, cj)])
 
     return out
 
