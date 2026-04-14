@@ -1,5 +1,17 @@
 TEST_DATABASE_FILE = "/mnt/d/Data/PWID/20241203/241203_LM_PWID_untargeted_alignment.cdResult"
 
+def test_reduce2d():
+    import numpy as np
+    from pydx.analysis import reduce2d
+    
+    input_array = np.arange(100).reshape((10,10))
+    print(input_array)
+    groups = np.array([6, 6, 6, 1, 1, 1, 1, 10, 2, 2])
+    expected_output = np.array([[66, 69, 62, 67], [96, 99, 92, 97], [26, 29, 22, 27], [76, 79, 72, 77]])
+    
+    output_array = reduce2d(input_array, groups, op=np.max)
+    np.testing.assert_equal(output_array, expected_output)
+
 def test_get_isotope_pattern():
     import numpy as np
     from pydx.analysis import generate_isotope_spectrum, match_peaks

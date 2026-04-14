@@ -90,13 +90,43 @@ def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap
     plt.show()
 
 def reduce2d(X, groups, op):
-    G = np.unique(groups)
-    N = len(G)
-    s = np.zeros((N, N))
-    for i in range(N):
-        for j in range(N):
-            s[i,j] = op(X[groups==G[i]][:,groups==G[j]])
-    return s
+    """
+    Reduce a 2d array X by applying an operation op to the submatrices defined by groups.
+    For example, if X is a matrix of pairwise distances between samples, and groups is a 
+    vector of group labels for each sample, then reduce2d(X, groups, np.mean) would 
+    return a matrix of mean pairwise distances between groups.
+    
+    Arguments:
+        X: A square 2d numpy array to be reduced
+        groups: A vector of group labels for each row/column of X. Must be the same length as the dimensions of X. 
+        op: A function that takes a 2d array and returns a single value, e.g. np.mean, np.median, np.max, etc
+        
+    Returns:
+        A 2d numpy array of shape (number of unique groups, number of unique groups). Note, groups are sorted 
+            in the order they appear in the input vector, so the i,j entry of the output corresponds to the 
+            result of applying op to the submatrix of X defined by rows in group i and columns in group j.
+    """
+    X = np.asarray(X)
+    groups = np.asarray(groups)
+
+    if X.ndim != 2 or X.shape[0] != X.shape[1]:
+        raise ValueError("X must be a square 2D array")
+    if len(groups) != X.shape[0]:
+        raise ValueError("groups must have the same length as X dimensions")
+
+    G, inv = np.unique(groups, return_inverse=True)
+    n_groups = len(G)
+
+    # Precompute integer indices for each group once
+    idx = [np.flatnonzero(inv == k) for k in range(n_groups)]
+
+    out = np.empty((n_groups, n_groups), dtype=float)
+
+    for i, ri in enumerate(idx):
+        for j, cj in enumerate(idx):
+            out[i, j] = op(X[np.ix_(ri, cj)])
+
+    return out
 
 def plot_spectrum(ax, spectrum, mz_range=None, top_n=3, label_fmt="{mz:.4f}", min_mz_label_separation=0.5, hide_x_label=False):
     mz = spectrum['mz'].to_numpy()
