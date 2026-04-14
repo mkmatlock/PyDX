@@ -35,13 +35,14 @@ def test_decode_spectrum_with_precursor_data():
     xml_data = open("tests/test_spectrum.xml", "r").read()
     metadata, precursors, peaks = decode_spectrum_from_xml(xml_data)
     
-    assert precursors.shape[0] == 13
+    assert precursors.shape[0] == 15
     monoisotopic_peak = precursors.monoisotopic_peak_centroids.iloc[0]
     assert monoisotopic_peak.to_list() == [337.22717, 9.679454E+07, 1, 54805, 4411.3]
     isotope_cluster_peaks = precursors.isotope_cluster_peak_centroids
     assert len(isotope_cluster_peaks) == 12
     assert isotope_cluster_peaks.iloc[0,0] == 335.12555
     assert isotope_cluster_peaks.iloc[-1,0] == 342.26358
+    assert precursors.charge == 1
     assert len(peaks) == 48
 
 def test_decode_spectrum_zipblob():

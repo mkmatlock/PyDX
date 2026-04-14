@@ -150,6 +150,7 @@ def generate_batches(idxa, msn_level, apply_rt_correction, delta_mass, num_peaks
             level = spectra.MSn.to_numpy().astype(int)
             fragmentation_method = spectra.ActivationType.apply(lambda x: activation_type_codes.get(x, 'Unknown')).to_numpy().astype(unicode_dt)
             precursor_mz = spectra.Precursor.apply(lambda x: (0 if x is None else x['precursor_mz'])).to_numpy().astype(np.float32)
+            charge = spectra.Precursor.apply(lambda x: (0 if x is None else x['charge'])).to_numpy().astype(int)
             
             if apply_rt_correction:
                 RT = spectra.apply(lambda row: rt_corrections[row.FileID](row.RetentionTime), axis=1).to_numpy().astype(np.float32)
@@ -157,7 +158,7 @@ def generate_batches(idxa, msn_level, apply_rt_correction, delta_mass, num_peaks
                 RT = spectra.RetentionTime.to_numpy().astype(np.float32)
             polarity = spectra.Polarity.apply(lambda x: polarity_codes[x]).to_numpy().astype(unicode_dt)
             
-            batch_result = {'spectrum_id': spectrum_ids, 'spectrum': formatted_spectra, 'level': level, 'fragmentation_method': fragmentation_method, 'precursor_mz': precursor_mz, 'RT': RT, 'polarity': polarity}
+            batch_result = {'spectrum_id': spectrum_ids, 'spectrum': formatted_spectra, 'ms_level': level, 'fragmentation_method': fragmentation_method, 'precursor_mz': precursor_mz, 'charge': charge, 'RT': RT, 'polarity': polarity}
             totalN += len(spectrum_ids)
             yield batch_result
             
