@@ -53,7 +53,7 @@ def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap
             include_gap_status: If True, plot gap status and gap fill method as colored bars behind the peak area bars. Note that this option is incompatible with combine=True.
     """
     if sample_filter is None:
-        sample_filter = np.ones(len(features.iloc[0].Area))
+        sample_filter = np.ones((len(features.iloc[0].Area),), dtype=int)
     
     gap_color_map = {1: 'blue', 2:'yellow', 3:'red'}
     gap_status_color_map = {0: 'gray', 1: 'blue', 2:'red', 4:'red', 8:'red', 16:'red', 32:'red', 64:'blue', 128:'blue', 256:'yellow', 512:'yellow', 1024:'yellow'}
