@@ -166,15 +166,15 @@ def generate_batches(idxa, msn_level, apply_rt_correction, delta_mass, num_peaks
             
 @click.command()
 @click.argument('input_file', type=click.Path(exists=True))
+@click.argument('output_file', type=click.Path())
 @click.option('--msn-level', '-l', default=None, type=int, help='MS level to export (default: all)')
 @click.option('--num-peaks', '-n', default=128, type=int, help='Number of peaks to include in the exported spectrum (default: 128)')
 @click.option('--delta-mass', '-d', default=5, type=float, help='PPM mass tolerance for structure annotation data (default: 5)')
 @click.option('--apply-rt-correction', '-r', is_flag=True, help='Apply retention time correction to the exported data')
-@click.option('--output', '-o', default='output.hdf5', help='Output file name')
-def export(input_file, msn_level, num_peaks, delta_mass, apply_rt_correction, output):
+def export(input_file, output_file, msn_level, num_peaks, delta_mass, apply_rt_correction):
     idxa = PyDX(input_file)
     
-    with h5py.File(output, 'w') as hf:
+    with h5py.File(output_file, 'w') as hf:
         batch_iterator = generate_batches(idxa, msn_level, apply_rt_correction, delta_mass, num_peaks)
         
         batch = next(batch_iterator)
