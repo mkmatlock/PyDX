@@ -2,6 +2,9 @@ import numpy as np
 import pandas as pd
 import sklearn
 from matplotlib import pyplot as plt
+from matplotlib.lines import Line2D
+from matplotlib.patches import Patch
+from .parsers import gap_fill_status_codes, gap_status_codes
 
 def match_peaks(mz_1, mz_2, tolerance):
     """Match peaks between two spectra given their m/z values and a tolerance in ppm.
@@ -44,6 +47,96 @@ def generate_isotope_spectrum(formula, adduct, charge):
         intensity[i] = iso.getIntensity()
     return pd.DataFrame({'mz': mz, 'intensity': intensity})
 
+gap_color_map = {1: 'blue', 2:'yellow', 3:'red'}
+gap_status_color_map = {0: 'gray', 1: 'blue', 2:'red', 4:'red', 8:'red', 16:'red', 32:'red', 64:'blue', 128:'blue', 256:'yellow', 512:'yellow', 1024:'yellow'}
+
+
+def add_gap_fill_legend(fig, axes=None):
+    """
+    Add a combined gap status / gap fill method legend to the right side
+    of a multi-axes matplotlib figure.
+
+    Parameters
+    ----------
+    fig : matplotlib.figure.Figure
+        Figure object containing the plot.
+    axes : array-like of matplotlib.axes.Axes, optional
+        Axes in the figure. If provided, space is adjusted to leave room
+        for the legend.
+    """
+
+    # Leave space on the right side of the figure
+    fig.subplots_adjust(right=0.72)
+
+    # Main gap status legend
+    gap_status_handles = [
+        Patch(
+            facecolor=gap_color_map[code],
+            edgecolor="black",
+            label=f"{code}: {label}",
+        )
+        for code, label in gap_status_codes.items()
+    ]
+
+    # Gap fill method legend
+    gap_fill_handles = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            linestyle="None",
+            markersize=8,
+            markerfacecolor=gap_status_color_map.get(code, "white"),
+            markeredgecolor="black",
+            label=f"{code}: {label}",
+        )
+        for code, label in gap_fill_status_codes.items()
+        if code in gap_status_color_map
+    ]
+
+    # Optional: include codes that have labels but no assigned color
+    uncolored_handles = [
+        Line2D(
+            [0],
+            [0],
+            marker="o",
+            linestyle="None",
+            markersize=8,
+            markerfacecolor="white",
+            markeredgecolor="black",
+            label=f"{code}: {label}",
+        )
+        for code, label in gap_fill_status_codes.items()
+        if code not in gap_status_color_map
+    ]
+
+    all_handles = (
+        [Line2D([], [], linestyle="None", label="Gap status")]
+        + gap_status_handles
+        + [Line2D([], [], linestyle="None", label="")]
+        + [Line2D([], [], linestyle="None", label="Gap fill method")]
+        + gap_fill_handles
+        + uncolored_handles
+    )
+
+    legend = fig.legend(
+        handles=all_handles,
+        loc="center left",
+        bbox_to_anchor=(1.05, 0.95),
+        frameon=True,
+        title="Gap fill annotation",
+        borderaxespad=0.0,
+        handlelength=1.2,
+        handletextpad=0.6,
+    )
+
+    # Make section-header rows appear text-only
+    for text in legend.get_texts():
+        if text.get_text() in {"Gap status", "Gap fill method"}:
+            text.set_fontweight("bold")
+
+    return legend
+
 def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap_status=False):
     """
         Plot the peak areas for a set of features across. Optionally filter by sample type and plot gap status and gap fill method as well.
@@ -54,10 +147,7 @@ def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap
     """
     if sample_filter is None:
         sample_filter = np.ones((len(features.iloc[0].Area),), dtype=bool)
-    
-    gap_color_map = {1: 'blue', 2:'yellow', 3:'red'}
-    gap_status_color_map = {0: 'gray', 1: 'blue', 2:'red', 4:'red', 8:'red', 16:'red', 32:'red', 64:'blue', 128:'blue', 256:'yellow', 512:'yellow', 1024:'yellow'}
-    
+        
     all_peak_areas = features.apply(lambda row: row.Area[sample_filter].tolist(), axis=1, result_type='expand')
     if combine:
         all_peak_areas.insert(0, 'Name', features.Name)
@@ -68,7 +158,7 @@ def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap
         gap_status = features.apply(lambda row: row.GapStatus[sample_filter].tolist(), axis=1, result_type='expand')
         gap_fill_method = features.apply(lambda row: row.GapFillStatus[sample_filter].tolist(), axis=1, result_type='expand')
     
-    _, ax = plt.subplots(1, total_features, figsize=(3 * total_features, 2))
+    fig, ax = plt.subplots(total_features, 1, figsize=(3, 2 * total_features))
     if total_features == 1:
         ax = [ax]
     x = np.arange(len(all_peak_areas.columns))
@@ -85,6 +175,8 @@ def plot_all_peak_areas(features, sample_filter=None, combine=False, include_gap
         else:
             ax[i].set_title(f"{features.loc[ix].Name} ({ix})", fontsize=10)
         ax[i].set_ylim(0, np.log10(max_area) * 1.2)
+        
+    add_gap_fill_legend(fig)
     
     plt.tight_layout()
     plt.show()
