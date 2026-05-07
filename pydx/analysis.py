@@ -281,7 +281,7 @@ def plot_spectrum(ax, spectrum, mz_range=None, top_n=3, label_fmt="{mz:.4f}", mi
 """
 def plot_all_spectra(spectra_df, names=None, precursor_mz=None, neutral_loss=False, columns=1, **kwargs):  
     if names is None:
-        names = [f"Feature {j} Spectrum {i} " for i,j in zip(spectra_df.FeatureID, spectra_df.SpectrumID)]
+        names = [f"Spectrum {j} Feature {i} " for i,j in zip(spectra_df.FeatureID, spectra_df.SpectrumID)]
     if type(names) is str:
         names = [names] * len(spectra_df)
     
