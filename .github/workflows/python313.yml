@@ -1,0 +1,23 @@
+name: Python 3.13 compatibility
+
+on: [push, pull_request]
+
+jobs:
+  install-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install --upgrade pip build pytest
+      # Build the wheel from the sdist to check that build inputs are included.
+      - run: python -m build
+      - run: python -m pip install dist/*.whl
+      - run: python -m pip check
+      # The remaining database tests require private .cdResult fixtures.
+      - run: >-
+          python -m pytest -q tests/test_parsers.py
+          tests/test_spectrum_conversions.py
+          tests/test_analysis.py::test_get_isotope_pattern
+          tests/test_analysis.py::test_reduce2d

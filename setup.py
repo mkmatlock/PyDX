@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 import os
-from distutils.core import setup
+from setuptools import setup
 setup_dir = os.path.dirname(__file__)
 
 setup(name='pydx',
@@ -9,5 +9,6 @@ setup(name='pydx',
       author='Matthew Matlock',
       author_email='mmatlock@wustl.edu',
       url='https://www.github.com/mkmatlock/ContaminantsDB/',
+      python_requires='>=3.10',
       install_requires=[pkg.strip() for pkg in open(os.path.join(setup_dir, 'requirements.txt')).read().splitlines()],
       packages=['pydx'])
