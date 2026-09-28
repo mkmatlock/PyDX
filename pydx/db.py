@@ -39,6 +39,56 @@ class PyDX(object):
         return features_df
     
     @property
+    def align_order(self):
+        if not hasattr(self, '_align_order_data'):
+            self._align_order_data = self.samples[self.samples.SampleType.isin([0, 2, 3])].SampleIdentifier.values
+        return self._align_order_data
+    
+    @property
+    def area(self):
+        """Construct a DataFrame containing Area with appropriate feature and sample ID indexing"""
+        if not hasattr(self, '_areas'):
+            self._areas = pd.DataFrame(self.features.Area.tolist(), index=self.features.index, columns=self.align_order)
+        return self._areas
+    
+    @property
+    def area_flags(self):
+        """Construct a DataFrame containing AreaFlags with appropriate feature and sample ID indexing"""
+        if not hasattr(self, '_area_flags'):
+            self._area_flags = pd.DataFrame(self.features.AreaFlags.tolist(), index=self.features.index, columns=self.align_order)
+        return self._area_flags
+    
+    @property
+    def peak_rating(self):
+        """Construct a DataFrame containing PeakRating with appropriate feature and sample ID indexing"""
+        if not hasattr(self, '_peak_ratings'):
+            self._peak_ratings = pd.DataFrame(self.features.PeakRating.tolist(), index=self.features.index, columns=self.align_order)
+        return self._peak_ratings
+    
+    @property
+    def peak_rating_flags(self):
+        """Construct a DataFrame containing PeakRatingFlags with appropriate feature and sample ID indexing"""
+        if not hasattr(self, '_peak_rating_flags'):
+            self._peak_rating_flags = pd.DataFrame(self.features.PeakRatingFlags.tolist(), index=self.features.index, columns=self.align_order)
+        return self._peak_rating_flags
+    
+    @property
+    def gap_fill_status(self):
+        """Construct a DataFrame containing GapFillStatus with appropriate feature and sample ID indexing"""
+        if not hasattr(self, '_gap_fill_status'):
+            gfs = [[None]*len(self.align_order) if L is None else L for L in self.features.GapFillStatus.tolist()]
+            self._gap_fill_status = pd.DataFrame(gfs, index=self.features.index, columns=self.align_order)
+        return self._gap_fill_status
+    
+    @property
+    def gap_status(self):
+        """Construct a DataFrame containing GapStatus with appropriate feature and sample ID indexing"""
+        if not hasattr(self, '_gap_status'):
+            gs = [[None]*len(self.align_order) if L is None else L for L in self.features.GapStatus.tolist()]
+            self._gap_status = pd.DataFrame(gs, index=self.features.index, columns=self.align_order)
+        return self._gap_status
+    
+    @property
     def features(self):
         if not hasattr(self, '_features_data'):
             self._features_data = pd.read_sql_table('ConsolidatedUnknownCompoundItems', con=self.engine, index_col='ID')
