@@ -76,16 +76,16 @@ class PyDX(object):
     def gap_fill_status(self):
         """Construct a DataFrame containing GapFillStatus with appropriate feature and sample ID indexing"""
         if not hasattr(self, '_gap_fill_status'):
-            gfs = [[None]*len(self.align_order) if L is None else L for L in self.features.GapFillStatus.tolist()]
-            self._gap_fill_status = pd.DataFrame(gfs, index=self.features.index, columns=self.align_order)
+            gfs = [[-1]*len(self.align_order) if pd.isna(L) else L for L in self.features.GapFillStatus.tolist()]
+            self._gap_fill_status = pd.DataFrame(gfs, index=self.features.index, columns=self.align_order).astype(int)
         return self._gap_fill_status
     
     @property
     def gap_status(self):
         """Construct a DataFrame containing GapStatus with appropriate feature and sample ID indexing"""
         if not hasattr(self, '_gap_status'):
-            gs = [[None]*len(self.align_order) if L is None else L for L in self.features.GapStatus.tolist()]
-            self._gap_status = pd.DataFrame(gs, index=self.features.index, columns=self.align_order)
+            gs = [[-1]*len(self.align_order) if pd.isna(L) else L for L in self.features.GapStatus.tolist()]
+            self._gap_status = pd.DataFrame(gs, index=self.features.index, columns=self.align_order).astype(int)
         return self._gap_status
     
     @property
